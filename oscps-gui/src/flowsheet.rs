@@ -3,8 +3,9 @@ use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::path::Builder;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
 use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
-use oscps_lib::simulation::{BlockReference, Simulation};
-use std::sync::Arc;
+use oscps_lib::simulation::{
+    block_refs_equal, stream_refs_equal, BlockReference, Simulation, StreamReference,
+};
 
 use std::time::{Duration, SystemTime};
 
@@ -46,6 +47,7 @@ pub enum Component {
         to: Option<Point>,
         from_block: Option<BlockReference>,
         to_block: Option<BlockReference>,
+        stream: Option<StreamReference>,
     },
     Mixer {
         at: Option<Point>,
@@ -64,13 +66,7 @@ pub enum Component {
         block: Option<BlockReference>,
     },
 }
-fn block_refs_equal(block1: &Option<BlockReference>, block2: &Option<BlockReference>) -> bool {
-    match (block1, block2) {
-        (None, None) => true,
-        (Some(b1), Some(b2)) => Arc::ptr_eq(b1, b2),
-        _ => false,
-    }
-}
+
 impl PartialEq for Component {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -80,18 +76,21 @@ impl PartialEq for Component {
                     to: to1,
                     from_block: from_block1,
                     to_block: to_block1,
+                    stream: stream1,
                 },
                 Component::Connector {
                     from: from2,
                     to: to2,
                     from_block: from_block2,
                     to_block: to_block2,
+                    stream: stream2,
                 },
             ) => {
                 from1 == from2
                     && to1 == to2
                     && block_refs_equal(from_block1, from_block2)
                     && block_refs_equal(to_block1, to_block2)
+                    && stream_refs_equal(stream1, stream2)
             }
             (
                 Component::Mixer {
@@ -148,6 +147,7 @@ impl Component {
             to: None,
             from_block: None,
             to_block: None,
+            stream: None,
         }
     }
 
@@ -337,6 +337,24 @@ impl Component {
         p.move_to(at);
         p.circle(input, 5.0);
     }
+
+    pub fn set_block(&mut self, block_ref: BlockReference) -> Result<(), &'static str> {
+        match self {
+            Component::Source { block, .. } => *block = Some(block_ref),
+            Component::Mixer { block, .. } => *block = Some(block_ref),
+            Component::Sink { block, .. } => *block = Some(block_ref),
+            Component::Connector { .. } => return Err("Block assignment attempted on Connector."),
+        }
+        Ok(())
+    }
+
+    pub fn set_stream(&mut self, stream_ref: StreamReference) -> Result<(), &'static str> {
+        match self {
+            Component::Connector { stream, .. } => *stream = Some(stream_ref),
+            _ => return Err("Stream assignment attempted on block."),
+        }
+        Ok(())
+    }
 }
 
 // Declare the default block to be the humble connector.
@@ -347,6 +365,7 @@ impl Default for Component {
             to: None,
             from_block: None,
             to_block: None,
+            stream: None,
         }
     }
 }
@@ -442,6 +461,7 @@ impl<'a> Flowsheet<'a> {
                     to: Some(cursor_position),
                     from_block: None, // TODO: Implement properly
                     to_block: None,
+                    stream: None,
                 });
                 for component in self.components {
                     if !matches!(component, Component::Connector { .. })
@@ -454,6 +474,7 @@ impl<'a> Flowsheet<'a> {
                             to: Some(component.get_input().unwrap()),
                             from_block: None,
                             to_block: None, // TODO: Implement properly
+                            stream: None,
                         });
                         *state = None;
                         return result;

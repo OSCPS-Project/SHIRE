@@ -77,17 +77,62 @@ impl MainWindow {
             Message::AddedComponent(component) => {
                 info!("Added component");
                 self.flowsheet.request_redraw();
-                match component {
-                    flowsheet::Component::Source{at: _, output: _, block: _}  => {
-                        self.simulation.add_block(simulation::BlockType::Mixer);
+                match &component {
+                    flowsheet::Component::Source{..}  => {
+                        let id = self.simulation.add_block(simulation::BlockType::Source);
+                        let block_reference = self.simulation.get_block(id).expect("Fetching block reference should succeed.");
+                        for comp in self.components.iter_mut() {
+                            if let flowsheet::Component::Source { .. } = comp {
+                                if *comp == component {
+                                    let _ = comp.set_block(block_reference.clone());
+                                }
+                            }
+                        }
                     },
-                    flowsheet::Component::Connector{ ..}  => todo!(),
-                    flowsheet::Component::Sink{ ..} => todo!(),
-                    flowsheet::Component::Mixer{ ..} => {
-                        self.simulation.add_block(simulation::BlockType::Mixer);
+                    flowsheet::Component::Connector{from_block, to_block, ..}  => {
+                       // Create a connector, then connect the inputs and outputs. 
+                      
+                       // HACK: Do not allow floating connectors
+                        let from_block = from_block.clone().expect("From block must be specified.");
+                        let to_block = to_block.clone().expect("To block must be specified."); 
+                        let id = self.simulation.add_stream(from_block, to_block);
+                        let stream_reference = self.simulation.get_stream(id).expect("Fetching stream reference should succeed.");
+                        for comp in self.components.iter_mut() {
+                            if let flowsheet::Component::Connector { .. } = comp {
+                                if *comp == component {
+                                    let _ = comp.set_stream(stream_reference.clone());
+                                }
+                            }
+                        }
+                    },
+                    flowsheet::Component::Sink{..} => {
+                        let id = self.simulation.add_block(simulation::BlockType::Sink);
+                        let block_reference = self.simulation.get_block(id).expect("Fetching block reference should succeed.");
+                        for comp in self.components.iter_mut() {
+                            if let flowsheet::Component::Sink { .. } = comp {
+                                if *comp == component {
+                                    let _ = comp.set_block(block_reference.clone());
+                                }
+                            }
+                        }
+                    },
+                    flowsheet::Component::Mixer{..} => {
+                        let id = self.simulation.add_block(simulation::BlockType::Mixer);
+                        let block_reference = self.simulation.get_block(id).expect("Fetching block reference should succeed.");
+                        for comp in self.components.iter_mut() {
+                            if let flowsheet::Component::Mixer { .. } = comp {
+                                if *comp == component {
+                                    let _ = comp.set_block(block_reference.clone());
+                                }
+                            }
+                        }
                     },
                 }
                 self.components.push(component);
+
+                for item in self.components.clone() { // HACK: For diagnostics
+                    println!("{}", item);
+                }
             }
             // TODO: Make the clear option more deliberate (2 clicks at least)
             Message::Clear => {

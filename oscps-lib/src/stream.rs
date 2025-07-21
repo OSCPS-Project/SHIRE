@@ -4,6 +4,7 @@
 // use crate::thermodynamics::ThermoState;
 use crate::simulation::BlockReference;
 
+// HACK: Streams must be connected to something. They cannot be floating.
 /// # Stream
 ///
 /// Struct to hold stream information

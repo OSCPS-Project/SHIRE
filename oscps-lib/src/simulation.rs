@@ -14,6 +14,27 @@ pub type BlockReference = Arc<RwLock<Box<dyn Block + Send + Sync>>>;
 /// An Arc, RwLock, Box reference for threadsafe Stream interactions.
 pub type StreamReference = Arc<RwLock<Box<Stream>>>;
 
+/// Compare two BlockReference types to see if their pointers match.
+pub fn block_refs_equal(block1: &Option<BlockReference>, block2: &Option<BlockReference>) -> bool {
+    match (block1, block2) {
+        (None, None) => true,
+        (Some(b1), Some(b2)) => Arc::ptr_eq(b1, b2),
+        _ => false,
+    }
+}
+
+/// Compare two StreamReference types to see if their pointers match.
+pub fn stream_refs_equal(
+    stream1: &Option<StreamReference>,
+    stream2: &Option<StreamReference>,
+) -> bool {
+    match (stream1, stream2) {
+        (None, None) => true,
+        (Some(s1), Some(s2)) => Arc::ptr_eq(s1, s2),
+        _ => false,
+    }
+}
+
 /// Used to tell functions what type of block to add.
 pub enum BlockType {
     /// Mix multiple streams into a single output stream.
@@ -98,7 +119,7 @@ impl Simulation {
     /// Adds a block to the simulation and returns a reference to the block
     /// the block.
     #[allow(dead_code)]
-    pub fn add_block(&mut self, block: BlockType) -> Option<u64> {
+    pub fn add_block(&mut self, block: BlockType) -> u64 {
         // Start with a block id of 1.
         let mut id = 1;
         while self.blocks.contains_key(&id) {
@@ -119,7 +140,7 @@ impl Simulation {
                     .insert(id, Arc::new(RwLock::new(Box::new(Sink::new()))));
             }
         }
-        return Some(id);
+        return id;
     }
 
     /// Adds a stream to the simulation and returns the ID of
