@@ -91,8 +91,22 @@ impl MainWindow {
                     },
                     flowsheet::Component::Connector{from_block, to_block, ..}  => {
                        // Create a connector, then connect the inputs and outputs. 
-                      
+                     
+                        // BUG: Clearing the screen while drawing a connector
+                        // results in a floating connector permenantly being 
+                        // drawn on screen.
                        // HACK: Do not allow floating connectors
+                       // TODO: This crashed. Must be properly integrated.
+                        if from_block.is_some() {
+                            println!("From is Some.");
+                        } else {
+                            println!("From is None.");
+                        }
+                        if to_block.is_some() {
+                            println!("To is Some.");
+                        } else {
+                            println!("To is None.");
+                        }
                         let from_block = from_block.clone().expect("From block must be specified.");
                         let to_block = to_block.clone().expect("To block must be specified."); 
                         let id = self.simulation.add_stream(from_block, to_block);
@@ -131,7 +145,7 @@ impl MainWindow {
                 self.components.push(component);
 
                 for item in self.components.clone() { // HACK: For diagnostics
-                    println!("{}", item);
+                    println!("Item: {}", item);
                 }
             }
             // TODO: Make the clear option more deliberate (2 clicks at least)

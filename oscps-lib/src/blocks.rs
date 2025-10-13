@@ -148,11 +148,12 @@ impl Mixer {
 
 impl Block for Mixer {
     fn connect_input<'a>(&mut self, stream: StreamReference) -> Result<(), &'static str> {
+        // Mixer can have multiple inputs
         match &mut self.inputs {
             None => {
                 let mut input_vec = Vec::new();
                 input_vec.push(stream);
-                self.inputs = Some(Vec::new());
+                self.inputs = Some(input_vec);
             }
             Some(input_vec) => input_vec.push(stream),
         }
@@ -179,6 +180,7 @@ impl Block for Mixer {
     fn connect_output(&mut self, stream: StreamReference) -> Result<(), &'static str> {
         match &mut self.output {
             None => {
+                println!("Connecting..."); // HACK: Remove later
                 self.output = Some(stream);
                 Ok(())
             }
@@ -278,7 +280,7 @@ impl Block for Sink {
             None => {
                 let mut input_vec = Vec::new();
                 input_vec.push(stream);
-                self.inputs = Some(Vec::new());
+                self.inputs = Some(input_vec);
             }
             Some(input_vec) => input_vec.push(stream),
         }

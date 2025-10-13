@@ -3,13 +3,16 @@ use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::path::Builder;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
 use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
+use oscps_lib::blocks::{Mixer, Sink, Source};
 use oscps_lib::simulation::{
     block_refs_equal, stream_refs_equal, BlockReference, Simulation, StreamReference,
 };
+use oscps_lib::stream::Stream;
 
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
 
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use strum_macros::Display;
 
 #[derive(Default)]
@@ -387,7 +390,7 @@ impl<'a> Flowsheet<'a> {
         Some(Component::Sink {
             at: Some(cursor_position),
             input: Some(input),
-            block: None,
+            block: Some(Arc::new(RwLock::new(Box::new(Sink::new())))),
         })
     }
 
@@ -400,7 +403,7 @@ impl<'a> Flowsheet<'a> {
         Some(Component::Source {
             at: Some(cursor_position),
             output: Some(output),
-            block: None,
+            block: Some(Arc::new(RwLock::new(Box::new(Source::new())))),
         })
     }
 
@@ -416,7 +419,7 @@ impl<'a> Flowsheet<'a> {
             at: Some(cursor_position),
             input: Some(input),
             output: Some(output),
-            block: None,
+            block: Some(Arc::new(RwLock::new(Box::new(Mixer::new())))),
         })
     }
 
@@ -432,6 +435,7 @@ impl<'a> Flowsheet<'a> {
                 info!("Beginning creation of connector...");
                 let mut result = Some(Pending::One {
                     from: cursor_position,
+                    from_block: None, // NOTE: Always assign upon creation.
                 });
 
                 for component in self.components {
@@ -439,10 +443,19 @@ impl<'a> Flowsheet<'a> {
                         && component.on_output(cursor_position)
                     {
                         info!("Connected to input!");
+                        let block_ref = match component {
+                            Component::Connector { .. } => {
+                                unreachable!("Cannot be a connector.")
+                            }
+                            Component::Mixer { block, .. } => block,
+                            Component::Source { block, .. } => block,
+                            Component::Sink { block, .. } => block,
+                        };
                         result = Some(Pending::One {
                             // NOTE: Should be safe. This must be Some(..) if
                             // on_output returned true.
                             from: component.get_output().unwrap(),
+                            from_block: block_ref.clone(),
                         });
                         *state = result;
                         return None;
@@ -453,36 +466,69 @@ impl<'a> Flowsheet<'a> {
                 }
                 None
             }
-            Some(Pending::One { from }) => {
-                info!("Created connector.");
+            Some(Pending::One { from, from_block }) => {
                 let from = *from;
-                let mut result = Some(Component::Connector {
+                let mut result = Component::Connector {
                     from: Some(from),
                     to: Some(cursor_position),
-                    from_block: None, // TODO: Implement properly
+                    from_block: from_block.clone(), // TODO: Implement properly
                     to_block: None,
                     stream: None,
-                });
+                };
                 for component in self.components {
                     if !matches!(component, Component::Connector { .. })
                         && component.on_input(cursor_position)
                     {
                         info!("Connected to input!");
-                        result = Some(Component::Connector {
-                            from: Some(from),
-                            // NOTE: Should be safe, on_input() returned true.
-                            to: Some(component.get_input().unwrap()),
-                            from_block: None,
-                            to_block: None, // TODO: Implement properly
-                            stream: None,
-                        });
+                        let block_ref = match component {
+                            Component::Connector { .. } => {
+                                unreachable!("We know it's not a Connector")
+                            }
+                            Component::Mixer { block, .. } => block,
+                            Component::Source { block, .. } => block,
+                            Component::Sink { block, .. } => block,
+                        };
+                        if let Component::Connector {
+                            ref mut to_block,
+                            ref mut stream,
+                            ..
+                        } = result
+                        {
+                            *to_block = block_ref.clone();
+                            *stream = Some(Arc::new(RwLock::new(Box::new(Stream::new(
+                                from_block.clone().unwrap(),
+                                to_block.clone().unwrap(),
+                            )))));
+                            // Connect input
+                            if let Err(e) = to_block
+                                .clone()
+                                .unwrap()
+                                .write()
+                                .unwrap()
+                                .connect_input(stream.clone().unwrap())
+                            {
+                                error!("Error: {}", e);
+                            }
+
+                            // Connect output
+                            if let Err(e) = from_block
+                                .clone()
+                                .unwrap()
+                                .write()
+                                .unwrap()
+                                .connect_output(stream.clone().unwrap())
+                            {
+                                error!("Error: {}", e);
+                            }
+                        }
                         *state = None;
-                        return result;
+                        info!("Created connector.");
+                        return Some(result);
                     }
                 }
                 if floating_connectors {
                     *state = None;
-                    result
+                    Some(result)
                 } else {
                     None
                 }
@@ -512,6 +558,8 @@ impl<'a> canvas::Program<Component> for Flowsheet<'a> {
                         let current_time = SystemTime::now();
 
                         match current_time.duration_since(self.left_click_time) {
+                            // HACK: Detect a double click if clicked in less than 200 ms
+                            // TODO: Use operating system double click, ideally through iced
                             Ok(elapsed) => {
                                 if elapsed < Duration::from_millis(200) {
                                     println!("Double click!")
@@ -597,14 +645,11 @@ impl<'a> canvas::Program<Component> for Flowsheet<'a> {
                             _ => match state {
                                 Some(Pending::One { .. }) => {
                                     if component.on_input(cursor_position) {
-                                        println!("Some");
                                         return mouse::Interaction::Grab;
                                     }
                                 }
                                 None => {
                                     if component.on_output(cursor_position) {
-                                        println!("Component: {}", component);
-                                        println!("None");
                                         return mouse::Interaction::Grab;
                                     }
                                 }
@@ -621,9 +666,12 @@ impl<'a> canvas::Program<Component> for Flowsheet<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Pending {
-    One { from: Point },
+    One {
+        from: Point,
+        from_block: Option<BlockReference>,
+    },
 }
 
 impl Pending {
@@ -638,7 +686,7 @@ impl Pending {
 
         if let Some(cursor_position) = cursor.position_in(bounds) {
             match *self {
-                Pending::One { from } => {
+                Pending::One { from, .. } => {
                     let to = cursor_position;
                     let line = Path::new(|p| {
                         p.move_to(from);
