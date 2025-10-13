@@ -500,15 +500,15 @@ impl<'a> Flowsheet<'a> {
                                 to_block.clone().unwrap(),
                             )))));
                             // Connect input
-                            if let Err(e) = to_block
-                                .clone()
-                                .unwrap()
-                                .write()
-                                .unwrap()
-                                .connect_input(stream.clone().unwrap())
-                            {
-                                error!("Error: {}", e);
-                            }
+                            // if let Err(e) = to_block
+                            //     .clone()
+                            //     .unwrap()
+                            //     .write()
+                            //     .unwrap()
+                            //     .connect_input(stream.clone().unwrap())
+                            // {
+                            //     error!("Error: {}", e);
+                            // }
 
                             // Connect output
                             if let Err(e) = from_block
