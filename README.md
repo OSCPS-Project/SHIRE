@@ -1,4 +1,4 @@
-# OSCPS (Open Source Chemical Process Simulator)
+# SHIRE (SIMULATION & HEAT INTEGRATION RUNTIME ENVIRONMENT)
 
 ![Rust Tests](https://github.com/OSCPS-Project/OSCPS/actions/workflows/rust-tests.yml/badge.svg?branch=develop)
 ![Documentation](https://github.com/OSCPS-Project/OSCPS/actions/workflows/check-docs.yml/badge.svg?branch=develop)
