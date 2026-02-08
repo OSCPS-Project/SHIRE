@@ -72,17 +72,19 @@ impl ThermodynamicConstants {
 ///
 /// Enumeration that will hold the single, double, and associating parameters for the different
 /// equation of state packages
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum EOSParams {
     SingleParameterType(SingleParameter),
     BinaryParameterType(BinaryParameter),
-    AssociatingParameterType(AssociatingParameter)
+    AssociatingParameterType(AssociatingParameter),
+    GroupContributionParameterType(EOSGroupContributionParameter),
+    ReferenceStateParameterType(ReferenceStateParameter)
 }
 
 ///# SingleParameter
 ///
 ///Pure component thermodynamic properties
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SingleParameter {
 
 }
@@ -90,7 +92,7 @@ pub struct SingleParameter {
 ///# BinaryParameter
 ///
 ///Thermodynamic properties for binary interactions
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct BinaryParameter {
 
 }
@@ -98,7 +100,7 @@ pub struct BinaryParameter {
 ///# AssociatingParameter
 ///
 ///Thermodynamic properties for associating interactions
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct AssociatingParameter {
 
 }
@@ -107,17 +109,20 @@ pub struct AssociatingParameter {
 ///
 /// Enumeration that will contain the types of reference states that will be used by the different
 /// equation of state models.
-pub enum ReferenceState{}
+#[derive(Clone)]
+pub enum ReferenceStateType{}
 
 ///# ReferenceStateParams
 /// 
 /// Will contain the parameters that will be part of each enum member in the ``ReferenceState``
 /// enumeration.
-pub struct ReferenceStateParams{}
+#[derive(Clone)]
+pub struct ReferenceStateParameter{}
 
 ///# EOSGroupContributionTypes
 ///
 /// Enumeration to hold the type of groups used within ``EOSGroupContributionParameters``
+#[derive(Clone)]
 pub enum EOSGroupContributionTypes{}
 
 ///# EOSGroupContributionParameters
@@ -130,7 +135,8 @@ pub enum EOSGroupContributionTypes{}
 ///
 /// Derived from ClapeyronThermo (GroupParams.jl)
 ///
-pub struct EOSGroupContributionParameters {
+#[derive(Clone)]
+pub struct EOSGroupContributionParameter {
     pub group_type : Arc<EOSGroupContributionTypes>,
     pub components : Arc<Vec<ComponentData>>,
     pub groups : Arc<Vec<String>>,
@@ -142,7 +148,7 @@ pub struct EOSGroupContributionParameters {
     pub sourcecsvs : Arc<Vec<String>>
 }
 
-impl EOSGroupContributionParameters {
+impl EOSGroupContributionParameter {
     ///Constructor for ``EOSGroupsContributionParameters``
     pub fn new(
         group_type : Arc<EOSGroupContributionTypes>,
