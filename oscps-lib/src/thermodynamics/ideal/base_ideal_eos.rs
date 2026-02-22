@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 use crate::thermodynamics::EOSParams;
-use crate::thermodynamics::ReferenceState;
+use crate::thermodynamics::ReferenceStateParameter;
 use crate::thermodynamics::ideal::BaseEOSModel;
 use crate::stream::ComponentData;
 
@@ -17,7 +17,7 @@ use crate::stream::ComponentData;
 pub struct BaseIdeal {
     ///List of components (coming from 'Stream' struct)
     pub components: Arc<Vec<ComponentData>>,
-    pub reference_state : Arc<ReferenceState> 
+    pub reference_state : Arc<ReferenceStateParameter> 
 }
 
 //Implementing the `BaseEOSModel` trait for the BasIdeal EOS Package. This will the default method
@@ -39,7 +39,7 @@ impl BaseIdeal {
     /// The ``BaseIdeal`` object 
     pub fn new(
         species : Arc<Vec<ComponentData>>, 
-        reference_state : Arc<ReferenceState>) 
+        reference_state : Arc<ReferenceStateParameter>) 
         -> Self {
             BaseIdeal { components: species, reference_state: reference_state }
     }

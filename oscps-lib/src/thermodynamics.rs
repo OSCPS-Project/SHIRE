@@ -164,7 +164,7 @@ impl EOSGroupContributionParameter {
         let empty_intergroup: DMatrix<i64> = DMatrix::zeros(0, 0);
         let n_intergroups: Vec<DMatrix<i64>> = vec![empty_intergroup.clone(); components.len()];
 
-        return EOSGroupContributionParameters { 
+        return EOSGroupContributionParameter { 
             group_type: group_type, 
             components: components, 
             groups: Arc::new(str_group), 
@@ -176,9 +176,9 @@ impl EOSGroupContributionParameter {
             sourcecsvs: sourcecsvs 
         };
     }
-    /// Retrieving intramolecular group interactions for thermo property calcs
-    pub fn compute_intramolecular_gc(&mut self) {
-        
+    
+    pub fn build_gc_groups(self) {
+
     }
 }
 

@@ -18,9 +18,9 @@ use uom::si::molar_mass;
 
 //Internal Imports
 use crate::thermodynamics::EOSParams;
-use crate::thermodynamics::ReferenceState;
+use crate::thermodynamics::ReferenceStateParameter;
 use crate::thermodynamics::ideal::BaseEOSModel;
-use crate::thermodynamics::EOSGroupContributionParameters;
+use crate::thermodynamics::EOSGroupContributionParameter;
 use crate::stream::ComponentData;
 
 ///# WalkerModel
@@ -51,9 +51,9 @@ pub struct WalkerModel {
     /// deg4 - param for Walker model(SingleParameter)
     pub deg_4 : Arc<EOSParams>,
     /// reference state for the EOS model
-    pub reference_state : Arc<ReferenceState>,
+    pub reference_state : Arc<ReferenceStateParameter>,
     /// group contributions
-    pub eos_groups : Arc<EOSGroupContributionParameters>
+    pub eos_groups : Arc<EOSGroupContributionParameter>
 
 }
 
@@ -91,21 +91,21 @@ impl WalkerModel {
         n_rot : Arc<EOSParams>, 
         theta_values : Arc<Vec<EOSParams>>, 
         deg_values : Arc<Vec<EOSParams>>, 
-        reference_state : Arc<ReferenceState>,
-        eos_groups : Arc<EOSGroupContributionParameters>)
+        reference_state : Arc<ReferenceStateParameter>,
+        eos_groups : Arc<EOSGroupContributionParameter>)
         -> Self {
             return WalkerModel { 
                 components: species, 
                 molecular_weight: molec_weight, 
                 n_rot: n_rot, 
-                theta_1: Arc::new(theta_values[0]), 
-                theta_2: Arc::new(theta_values[1]), 
-                theta_3: Arc::new(theta_values[2]), 
-                theta_4: Arc::new(theta_values[3]), 
-                deg_1: Arc::new(deg_values[0]), 
-                deg_2: Arc::new(deg_values[1]), 
-                deg_3: Arc::new(deg_values[2]), 
-                deg_4: Arc::new(deg_values[3]), 
+                theta_1: Arc::new(theta_values[0].clone()), 
+                theta_2: Arc::new(theta_values[1].clone()), 
+                theta_3: Arc::new(theta_values[2].clone()), 
+                theta_4: Arc::new(theta_values[3].clone()), 
+                deg_1: Arc::new(deg_values[0].clone()), 
+                deg_2: Arc::new(deg_values[1].clone()), 
+                deg_3: Arc::new(deg_values[2].clone()), 
+                deg_4: Arc::new(deg_values[3].clone()), 
                 reference_state: reference_state,
                 eos_groups: eos_groups };
     }
