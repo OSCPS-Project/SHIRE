@@ -1,398 +1,116 @@
-mod flowsheet;
-mod style;
+use std::f32::consts::PI;
+use std::time::Instant;
 
-use iced::widget::pane_grid::{self, PaneGrid};
-use iced::widget::{button, column, container, horizontal_space, hover, responsive, text};
-use iced::{Center, Element, Fill, Length, Theme};
+use iced::gradient::Linear;
+use iced::widget::canvas::{self, stroke, Cache, Canvas, Geometry, Path, Stroke};
+use iced::window;
+use iced::{mouse, Color};
 
-use oscps_lib::simulation::{self, Settings, Simulation};
-
-use icon::Icon;
-
-use log::{debug, info};
+use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    // Start the GUI env_logger::init();
-    info!("Starting application");
-
-    let mut settings = iced::window::Settings::default();
-    settings.size = (1920.0, 1080.0).into();
-    settings.min_size = Some((480.0, 720.0).into());
-
-    let application = iced::application(
-        "Open Source Chemical Process Simulator",
-        MainWindow::update,
-        MainWindow::view,
-    )
-    .window(settings)
-    .theme(|_| Theme::CatppuccinMocha)
-    .antialiasing(true)
-    .centered();
-
-    application.run()
+    iced::application(OSCPS::new, OSCPS::update, OSCPS::view)
+        .subscription(OSCPS::subscription)
+        .theme(Theme::Dark)
+        .run()
 }
 
-// These are the structures which make up the main window
-#[allow(dead_code)]
-struct MainWindow {
-    // theme: Theme,
-    panes: pane_grid::State<Pane>,
-    focus: Option<pane_grid::Pane>,
-    flowsheet: flowsheet::State,
-    components: Vec<flowsheet::Component>,
-    simulation: Simulation,
+struct OSCPS {
+    start: Instant,
+    cache: Cache,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum Message {
-    AddedComponent(flowsheet::Component),
-    Clear,
-    PlaceComponent(flowsheet::Component),
-    Clicked(pane_grid::Pane),
-    Dragged(pane_grid::DragEvent),
-    Resized(pane_grid::ResizeEvent),
+    Tick,
 }
 
-impl MainWindow {
+impl OSCPS {
     fn new() -> Self {
-        let (mut panes, pane) = pane_grid::State::new(Pane::new_selection());
-        if let Some((_, split)) = panes.split(pane_grid::Axis::Vertical, pane, Pane::new_canvas()) {
-            panes.resize(split, 0.2);
-        }
-
-        let settings = Settings::default();
-
-        MainWindow {
-            // theme: Theme::default(),
-            panes,
-            focus: None,
-            flowsheet: flowsheet::State::default(),
-            components: Vec::default(),
-            simulation: Simulation::new(settings),
+        OSCPS {
+            start: Instant::now(),
+            cache: Cache::default(),
         }
     }
 
     fn update(&mut self, message: Message) {
-        match message {
-            Message::AddedComponent(component) => {
-                info!("Added component");
-                self.flowsheet.request_redraw();
-                match &component {
-                    flowsheet::Component::Source{..}  => {
-                        let id = self.simulation.add_block(simulation::BlockType::Source);
-                        let block_reference = self.simulation.get_block(id).expect("Fetching block reference should succeed.");
-                        for comp in self.components.iter_mut() {
-                            if let flowsheet::Component::Source { .. } = comp {
-                                if *comp == component {
-                                    let _ = comp.set_block(block_reference.clone());
-                                }
-                            }
-                        }
-                    },
-                    flowsheet::Component::Connector{from_block, to_block, ..}  => {
-                       // Create a connector, then connect the inputs and outputs. 
-                     
-                        // BUG: Clearing the screen while drawing a connector
-                        // results in a floating connector permenantly being 
-                        // drawn on screen.
-                       // HACK: Do not allow floating connectors
-                       // TODO: This crashed. Must be properly integrated.
-                        if from_block.is_some() {
-                            println!("From is Some.");
-                        } else {
-                            println!("From is None.");
-                        }
-                        if to_block.is_some() {
-                            println!("To is Some.");
-                        } else {
-                            println!("To is None.");
-                        }
-                        let from_block = from_block.clone().expect("From block must be specified.");
-                        let to_block = to_block.clone().expect("To block must be specified."); 
-                        let id = self.simulation.add_stream(from_block, to_block);
-                        let stream_reference = self.simulation.get_stream(id).expect("Fetching stream reference should succeed.");
-                        for comp in self.components.iter_mut() {
-                            if let flowsheet::Component::Connector { .. } = comp {
-                                if *comp == component {
-                                    let _ = comp.set_stream(stream_reference.clone());
-                                }
-                            }
-                        }
-                    },
-                    flowsheet::Component::Sink{..} => {
-                        let id = self.simulation.add_block(simulation::BlockType::Sink);
-                        let block_reference = self.simulation.get_block(id).expect("Fetching block reference should succeed.");
-                        for comp in self.components.iter_mut() {
-                            if let flowsheet::Component::Sink { .. } = comp {
-                                if *comp == component {
-                                    let _ = comp.set_block(block_reference.clone());
-                                }
-                            }
-                        }
-                    },
-                    flowsheet::Component::Mixer{..} => {
-                        let id = self.simulation.add_block(simulation::BlockType::Mixer);
-                        let block_reference = self.simulation.get_block(id).expect("Fetching block reference should succeed.");
-                        for comp in self.components.iter_mut() {
-                            if let flowsheet::Component::Mixer { .. } = comp {
-                                if *comp == component {
-                                    let _ = comp.set_block(block_reference.clone());
-                                }
-                            }
-                        }
-                    },
-                }
-                self.components.push(component);
-
-                for item in self.components.clone() { // HACK: For diagnostics
-                    println!("Item: {}", item);
-                }
-            }
-            // TODO: Make the clear option more deliberate (2 clicks at least)
-            Message::Clear => {
-                self.flowsheet = flowsheet::State::default();
-                self.components.clear();
-            }
-            // Default placement mode should be 'None'
-            Message::PlaceComponent(component) => {
-                match component {
-                    // TODO: Modify to do more work other than a simple assignment.
-                    flowsheet::Component::Connector { .. } => {
-                        info!("Setting to connector placement mode.");
-                        self.flowsheet.placement_mode = flowsheet::Component::connector();
-                    }
-                    flowsheet::Component::Mixer { .. } => {
-                        info!("Setting to mixer placement mode.");
-                        self.flowsheet.placement_mode = flowsheet::Component::mixer();
-                    }
-                    flowsheet::Component::Source { .. } => {
-                        info!("Setting to source placement mode.");
-                        self.flowsheet.placement_mode = flowsheet::Component::source();
-                    }
-                    flowsheet::Component::Sink { .. } => {
-                        info!("Setting to sink placement mode.");
-                        self.flowsheet.placement_mode = flowsheet::Component::sink();
-                    }
-                }
-            }
-            Message::Clicked(pane) => {
-                self.focus = Some(pane);
-                info!("You clicked on a pane!")
-            }
-            Message::Dragged(pane_grid::DragEvent::Dropped { pane, target }) => {
-                self.panes.drop(pane, target);
-                info!("You dragged a pane!")
-            }
-            Message::Dragged(_) => {
-                info!("You dragged, but did not drop a pane!")
-            }
-            Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
-                self.panes.resize(split, ratio);
-                info!("You resized a pane!")
-            }
-        }
+        self.cache.clear();
     }
 
-    // Create a button to add a certain component
-    fn placement_button<'a>(
-        &'a self,
-        target_mode: flowsheet::Component,
-    ) -> impl Into<Element<'a, Message>> {
-        container(
-            button(container(column![
-                Icon::new(target_mode.clone()),
-                text(target_mode.to_string())
-            ]))
-            .style(match self.flowsheet.placement_mode.clone() {
-                mode if mode == target_mode => button::danger,
-                _ => button::secondary,
-            })
-            .on_press(Message::PlaceComponent(target_mode)),
-        )
+    fn view(&self) -> Element<'_, Message> {
+        Canvas::new(self).width(Fill).height(Fill).into()
     }
 
-    fn view(&self) -> Element<Message> {
-        let focus = self.focus;
-        let pane_grid = PaneGrid::new(&self.panes, |id, pane, _is_maximized| {
-            let is_focused = focus == Some(id);
-            match pane {
-                Pane::ComponentSelection => {
-                    debug!("Found Selection!");
-                    return column![
-                        container(text("Component Selection"))
-                            .padding(5)
-                            .width(Length::Fill)
-                            .style(if is_focused {
-                                style::title_bar_focused
-                            } else {
-                                style::title_bar_active
-                            }),
-                        self.placement_button(flowsheet::Component::source()).into(),
-                        self.placement_button(flowsheet::Component::sink()).into(),
-                        self.placement_button(flowsheet::Component::connector())
-                            .into(),
-                        self.placement_button(flowsheet::Component::mixer()).into(),
-                    ]
-                    .width(Length::Fill)
-                    .into();
-                }
-                Pane::Canvas => {
-                    debug!("Found canvas!");
-
-                    let flowsheet_title_bar = pane_grid::TitleBar::new("Flowsheet")
-                        .padding(10)
-                        .style(if is_focused {
-                            style::title_bar_focused
-                        } else {
-                            style::title_bar_active
-                        });
-
-                    pane_grid::Content::new(responsive(move |_size| {
-                        view_content(hover(
-                            self.flowsheet
-                                .view(&self.components, &self.simulation)
-                                .map(Message::AddedComponent),
-                            if self.components.is_empty() {
-                                container(horizontal_space())
-                            } else {
-                                container(
-                                    button("Clear")
-                                        .style(button::danger)
-                                        .on_press(Message::Clear),
-                                )
-                                .padding(10)
-                                .align_top(Fill)
-                            },
-                        ))
-                    }))
-                    .title_bar(flowsheet_title_bar)
-                    .style(if is_focused {
-                        style::pane_focused
-                    } else {
-                        style::pane_active
-                    })
-                }
-            }
-        })
-        .width(Fill)
-        .height(Fill)
-        .spacing(10)
-        .on_click(Message::Clicked)
-        .on_drag(Message::Dragged)
-        .on_resize(10, Message::Resized);
-
-        container(column![pane_grid,]).padding(20).into()
+    fn subscription(&self) -> Subscription<Message> {
+        window::frames().map(|_| Message::Tick)
     }
 }
 
-impl Default for MainWindow {
+impl Default for OSCPS {
     fn default() -> Self {
-        MainWindow::new()
+        OSCPS::new()
     }
 }
 
-mod icon {
-    use crate::flowsheet;
-    use iced::advanced::layout::{self, Layout};
-    use iced::advanced::renderer;
-    use iced::advanced::widget::{self, Widget};
-    use iced::border;
-    use iced::mouse;
-    use iced::{Color, Element, Length, Rectangle, Size};
+impl<Message> canvas::Program<Message> for OSCPS {
+    type State = ();
 
-    pub struct Icon {
-        // component: flowsheet::Component,
-    }
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer,
+        theme: &Theme,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+    ) -> Vec<Geometry> {
+        let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
+            let palette = theme.palette();
 
-    impl Icon {
-        pub fn new(_component: flowsheet::Component) -> Self {
-            Self { 
-                // component
-            }
-        }
-    }
+            let center = frame.center();
+            let radius = frame.width().min(frame.height()) / 5.0;
 
-    #[allow(dead_code)]
-    pub fn icon(component: flowsheet::Component) -> Icon {
-        Icon::new(component)
-    }
+            let start = Point::new(center.x, center.y - radius); //  Top, stationary point
 
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Icon
-    where
-        Renderer: renderer::Renderer,
-    {
-        fn size(&self) -> Size<Length> {
-            Size {
-                width: Length::Shrink,
-                height: Length::Shrink,
-            }
-        }
+            // One full rotation every second
+            let angle = (self.start.elapsed().as_millis() % 10_000) as f32 / 10_000.0 * 2.0 * PI;
 
-        fn layout(
-            &self,
-            _tree: &mut widget::Tree,
-            _renderer: &Renderer,
-            _limits: &layout::Limits,
-        ) -> layout::Node {
-            let hard_size = 100.0; // HACK: Temporary, figure out a more elegant solution later.
-            layout::Node::new(Size::new(hard_size, hard_size))
-        }
+            let end = match cursor {
+                mouse::Cursor::Available(point) => point,
+                mouse::Cursor::Levitating(point) => point,
+                mouse::Cursor::Unavailable => Point::new(center.x, center.y),
+            };
 
-        fn draw(
-            &self,
-            _state: &widget::Tree,
-            renderer: &mut Renderer,
-            _theme: &Theme,
-            _style: &renderer::Style,
-            layout: Layout<'_>,
-            _cursor: mouse::Cursor,
-            _viewport: &Rectangle,
-        ) {
-            let hard_size = 50.0; // HACK: Again, temporary
+            // let end = Point::new(
+            //     center.x + radius * angle.cos(),
+            //     center.y + radius * angle.sin(),
+            // );
 
-            // TODO: Placeholder for when custom widgets have better support.
+            // Draw the end point circles
+            let circles = Path::new(|b| {
+                b.circle(start, 10.0);
+                b.move_to(end);
+                b.circle(end, 10.0);
+            });
 
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: layout.bounds(),
-                    border: border::rounded(hard_size),
-                    ..renderer::Quad::default()
+            let path = Path::new(|b| {
+                b.move_to(start);
+                b.arc_to(center, end, 50.0);
+                b.line_to(end);
+            });
+
+            frame.stroke(
+                &path,
+                Stroke {
+                    // style: stroke::Style::Solid(palette.text),
+                    style: stroke::Style::Solid(Color::BLACK),
+                    width: 10.0,
+                    ..Stroke::default()
                 },
-                Color::BLACK,
             );
-        }
+
+            frame.fill(&circles, palette.danger);
+        });
+
+        vec![geometry]
     }
-    impl<Message, Theme, Renderer> From<Icon> for Element<'_, Message, Theme, Renderer>
-    where
-        Renderer: renderer::Renderer,
-    {
-        fn from(icon: Icon) -> Self {
-            Self::new(icon)
-        }
-    }
-}
-
-#[derive(Clone, Copy, Default)]
-enum Pane {
-    Canvas,
-
-    #[default]
-    ComponentSelection,
-}
-
-impl Pane {
-    fn new_selection() -> Self {
-        Pane::ComponentSelection
-    }
-    fn new_canvas() -> Self {
-        Pane::Canvas
-    }
-}
-
-fn view_content<'a>(flowsheet: Element<'a, Message>) -> Element<'a, Message> {
-    let content = column![flowsheet] // controls,
-        .spacing(10)
-        .align_x(Center);
-
-    container(content).center_y(Fill).padding(5).into()
 }
