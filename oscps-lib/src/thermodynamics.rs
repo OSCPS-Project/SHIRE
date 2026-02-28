@@ -137,12 +137,9 @@ pub enum EOSGroupContributionTypes{}
 ///
 #[derive(Clone)]
 pub struct EOSGroupContributionParameter {
-    pub group_type : Arc<EOSGroupContributionTypes>,
-    pub components : Arc<Vec<ComponentData>>,
-    pub groups : Arc<Vec<String>>,
-    pub n_groups : Arc<Vec<i64>>,
-    pub n_intergroups : Arc<Vec<DMatrix<i64>>>,
-    pub i_groups : Arc<Vec<Vec<i64>>>,
+    pub group_type : Arc<EOSGroupContributionTypes>, //Type of group contribution
+    pub components : Arc<Vec<ComponentData>>, // list of the components
+    pub n_intragroups : Arc<Vec<DMatrix<i64>>>, 
     pub flattened_groups : Arc<Vec<String>>,
     pub n_flattened_groups : Arc<Vec<Vec<i64>>>,
     pub sourcecsvs : Arc<Vec<String>>
@@ -153,24 +150,17 @@ impl EOSGroupContributionParameter {
     pub fn new(
         group_type : Arc<EOSGroupContributionTypes>,
         components : Arc<Vec<ComponentData>>,
-        raw_groups : Arc<HashMap<String, i64>>,
         sourcecsvs : Arc<Vec<String>>,
     ) ->Self {
-        let str_group = raw_groups.keys().cloned().collect(); // getting the group names
-        let group_amts = raw_groups.values().cloned().collect(); // getting the group values
         let flattened_groups : Vec<String> = Vec::new();
-        let i_groups : Vec<Vec<i64>> = Vec::new();
         let n_flattened_groups : Vec<Vec<i64>> = Vec::new();
         let empty_intergroup: DMatrix<i64> = DMatrix::zeros(0, 0);
-        let n_intergroups: Vec<DMatrix<i64>> = vec![empty_intergroup.clone(); components.len()];
+        let n_intragroups: Vec<DMatrix<i64>> = vec![empty_intergroup.clone(); components.len()];
 
         return EOSGroupContributionParameter { 
             group_type: group_type, 
             components: components, 
-            groups: Arc::new(str_group), 
-            n_groups: Arc::new(group_amts), 
-            n_intergroups: Arc::new(n_intergroups), 
-            i_groups: Arc::new(i_groups), 
+            n_intragroups: Arc::new(n_intragroups), 
             flattened_groups: Arc::new(flattened_groups), 
             n_flattened_groups: Arc::new(n_flattened_groups),
             sourcecsvs: sourcecsvs 
@@ -178,7 +168,7 @@ impl EOSGroupContributionParameter {
     }
     
     pub fn build_gc_groups(self) {
-
+        
     }
 }
 

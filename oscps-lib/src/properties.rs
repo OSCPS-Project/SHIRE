@@ -32,6 +32,8 @@ pub struct Chemical {
     pub pubchem_obj: pubchem::Compound,
     /// Physical properties of a compound.
     pub properties: ChemicalProperties,
+    /// functional groups present for this chemical (group name, db index, multiplicity)
+    pub groups: Vec<(String, i32, i64)>
 }
 
 #[allow(dead_code)]
@@ -61,9 +63,11 @@ impl Chemical {
         // let cid_vec = pubchem_chemical_object.cids().unwrap();
         let cid: i32 = cid_vec.unwrap()[0];
         let prop = ChemicalProperties::new(cid);
+        let groups : Vec<(String, i32, i64)> = Vec::new();
         Ok(Chemical {
             pubchem_obj: pubchem_chemical_object,
             properties: prop,
+            groups : groups
         })
     }
     /// Returns the pubchem object for the compound.
