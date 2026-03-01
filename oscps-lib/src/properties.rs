@@ -2,8 +2,6 @@
 //!
 //! Contains chemical properties for species in the simulation.
 
-//Importing pure species properties
-pub mod pure_species_properties;
 
 extern crate uom;
 extern crate pubchem;
@@ -82,37 +80,15 @@ impl Chemical {
 }
 
 #[allow(dead_code)]
-/// Struct containing properties of a chemical
-pub struct ChemicalProperties {
-    /// Pure species properties
-    pub critical: Option<CriticalProperties>,
-    
-    /// Heat capacity coefficients (optional, stored as an array)
-    pub heat_capacity: Option<HeatCapacityCoefficients>,
-    
-    /// Transport properties (optional, could include viscosity, etc.)
-    pub transport: Option<TransportProperties>,
-    
-    /// Additional chemical property categories
-        // Here we might add properties related to binary interactions, etc...
-    pub other_properties: Option<Vec<SpecialProperties>>,
-}
+/// Struct containing physical properties of a chemical species
+pub struct ChemicalProperties {}
 
 impl ChemicalProperties{
     /// constructor for the ``ChemicalProperties`` struct
     pub fn new(_cid: i32) -> ChemicalProperties {
-        return ChemicalProperties { critical: None, heat_capacity: None, transport: None, other_properties: None};
+        return ChemicalProperties {};
     }
 }
-
-pub struct CriticalProperties {}
-
-pub struct HeatCapacityCoefficients {}
-
-pub struct TransportProperties {}
-
-pub struct SpecialProperties {}
-
 
 
 #[cfg(test)]

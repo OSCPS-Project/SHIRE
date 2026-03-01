@@ -70,14 +70,23 @@ impl ThermodynamicConstants {
 
 ///# EOSParams
 ///
-/// Enumeration that will hold the single, double, and associating parameters for the different
-/// equation of state packages
+/// Will hold in the parameters information from the database that the various EOS models will use
 #[derive(Clone)]
 pub enum EOSParams {
+    ///Will hold like parameters for a single chemical/groups (e.g acentric factor)
     SingleParameterType(SingleParameter),
+
+    ///Will hold like and unlike parameters for a pair of chemical species/groups
     BinaryParameterType(BinaryParameter),
+
+    ///Parameters for associating interactions between two sites on 2 species/groups(e.g
+    ///associating energy or bonding volume)
     AssociatingParameterType(AssociatingParameter),
+
+    ///Parameters associated to groups 
     GroupContributionParameterType(EOSGroupContributionParameter),
+
+    ///Will hold parameters from the reference model
     ReferenceStateParameterType(ReferenceStateParameter)
 }
 
@@ -86,7 +95,7 @@ pub enum EOSParams {
 ///Pure component thermodynamic properties
 #[derive(Clone)]
 pub struct SingleParameter {
-
+    
 }
 
 ///# BinaryParameter
@@ -174,7 +183,7 @@ impl EOSGroupContributionParameter {
     }
     
     pub fn build_gc_groups(self) {
-                
+        
     }
 }
 
