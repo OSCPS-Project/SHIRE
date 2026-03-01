@@ -137,11 +137,17 @@ pub enum EOSGroupContributionTypes{}
 ///
 #[derive(Clone)]
 pub struct EOSGroupContributionParameter {
-    pub group_type : Arc<EOSGroupContributionTypes>, //Type of group contribution
-    pub components : Arc<Vec<ComponentData>>, // list of the components
-    pub n_intragroups : Arc<Vec<DMatrix<i64>>>, // A list with all the connections between groups
-    pub flattened_groups : Arc<Vec<String>>, // list of the unique groups
-    pub n_flattened_groups : Arc<Vec<Vec<i64>>>, //multiplicitiy of each unique group for each chemical species
+    ///Type of group contribution
+    pub group_type : Arc<EOSGroupContributionTypes>, 
+    /// list of the components
+    pub components : Arc<Vec<ComponentData>>, 
+    /// A list of all the connections between groups
+    pub n_intragroups : Arc<Vec<DMatrix<i64>>>, 
+    /// A list of all unique groups
+    pub flattened_groups : Arc<Vec<String>>, 
+    ///multiplicitiy of each unique group for each chemical species 
+    pub n_flattened_groups : Arc<Vec<Vec<i64>>>, 
+    /// references
     pub sourcecsvs : Arc<Vec<String>>
 }
 
@@ -168,7 +174,7 @@ impl EOSGroupContributionParameter {
     }
     
     pub fn build_gc_groups(self) {
-        
+                
     }
 }
 
