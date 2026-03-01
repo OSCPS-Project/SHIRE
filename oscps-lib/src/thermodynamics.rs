@@ -139,9 +139,9 @@ pub enum EOSGroupContributionTypes{}
 pub struct EOSGroupContributionParameter {
     pub group_type : Arc<EOSGroupContributionTypes>, //Type of group contribution
     pub components : Arc<Vec<ComponentData>>, // list of the components
-    pub n_intragroups : Arc<Vec<DMatrix<i64>>>, 
-    pub flattened_groups : Arc<Vec<String>>,
-    pub n_flattened_groups : Arc<Vec<Vec<i64>>>,
+    pub n_intragroups : Arc<Vec<DMatrix<i64>>>, // A list with all the connections between groups
+    pub flattened_groups : Arc<Vec<String>>, // list of the unique groups
+    pub n_flattened_groups : Arc<Vec<Vec<i64>>>, //multiplicitiy of each unique group for each chemical species
     pub sourcecsvs : Arc<Vec<String>>
 }
 
