@@ -182,7 +182,7 @@ impl EOSGroupContributionParameter {
         };
     }
     /// Builds the intragroups for the Group Param
-    pub fn build_intragroups<T>(self, db_group_contribution_intragroups : &Vec<Vec<((String, String), f64)>>) {
+    pub fn build_intragroups(self, db_group_contribution_intragroups : &Vec<Vec<((String, String), f64)>>) {
        let group_names = self.flattened_groups.as_ref().clone();
        let n_groups = group_names.len();
        let n_components = self.components.as_ref().len();
@@ -211,12 +211,7 @@ impl EOSGroupContributionParameter {
            }
            n_intergroups.push(matrix);
        }
-
-
-
-
     }
-
 }
 
 
