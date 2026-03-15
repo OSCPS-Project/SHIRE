@@ -181,10 +181,42 @@ impl EOSGroupContributionParameter {
             sourcecsvs: sourcecsvs 
         };
     }
-    
-    pub fn build_gc_groups(self) {
-        
+    /// Builds the intragroups for the Group Param
+    pub fn build_intragroups<T>(self, db_group_contribution_intragroups : &Vec<Vec<((String, String), f64)>>) {
+       let group_names = self.flattened_groups.as_ref().clone();
+       let n_groups = group_names.len();
+       let n_components = self.components.as_ref().len();
+
+       let mut n_intergroups: Vec<Vec<Vec<f64>>> = Vec::with_capacity(n_components);
+
+       for i in 0..n_components {
+           // Create an n_groups x n_groups matrix filled with 0.0
+           let mut matrix: Vec<Vec<f64>> = vec![vec![0.0; n_groups]; n_groups];
+           let gc_pair_i = &db_group_contribution_intragroups[i];
+           assert!(!gc_pair_i.is_empty(), "Intragroup information was requested, but is missing from component {}", i);
+           for pair_ik in gc_pair_i.iter() {
+               let ((k1, k2), val) = pair_ik; // destructure the tuple
+               let n1 = group_names
+                   .iter()
+                   .position(|x| *x == *k1)
+                   .expect(&format!("group {} not found", k1));
+               let n2 = group_names
+                   .iter()
+                   .position(|x| *x == *k2)
+                   .expect(&format!("group {} not found", k2));
+
+               matrix[n1][n2] = *val;
+               matrix[n2][n1] = *val;
+
+           }
+           n_intergroups.push(matrix);
+       }
+
+
+
+
     }
+
 }
 
 
