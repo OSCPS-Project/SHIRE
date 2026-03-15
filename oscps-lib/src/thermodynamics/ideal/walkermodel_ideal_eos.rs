@@ -64,11 +64,46 @@ impl BaseEOSModel for WalkerModel {
         return Arc::clone(&self.components);
     }
     // Overriding the default function for the Walker Ideal Model
-    fn ideal_helmholtz(&self, V: Volume, T: ThermodynamicTemperature) -> Energy {
+    fn ideal_helmholtz(&self, V: Volume, T: ThermodynamicTemperature, z: Vec<AmountOfSubstance>) -> Energy {
+        let a_ideal = 0.0;
         let rotational_modes = vec![self.theta_1.as_ref(), self.theta_2.as_ref(), self.theta_3.as_ref(), self.theta_4.as_ref()];
         let vibrational_modes = vec![self.deg_1.as_ref(), self.deg_2.as_ref(), self.deg_3.as_ref(), self.deg_4.as_ref()];
-        let a_ideal = 0.0;
-        
+        let n_groups = &self.eos_groups.n_flattened_groups.clone();
+        let residual = 0.0;
+        let sum_moles = self.total_moles();
+        // loop over components
+        for (ni, &zi) in n_groups.iter().zip(z.iter()) {
+            // Molecular weight for this component
+            let molecular_weight_i = ni.iter()
+                .map(|&n| n as f64 * sum_moles)
+                .collect();
+            // Rotational contribution
+            //FIXME:Need to figure out how to extract value from self.n_rot
+            let n_rotational_mode_i = ni.iter().map(|&n| n as f64 * self.n_rot).collect()/(ni.iter().sum()); 
+            // Thermal wavelength
+            let lambda = H / (K_B * T.value() * mwi / N_A).sqrt();
+
+            // Ideal translational term
+            a_ideal += xlogx(zi.get::<mole>(), N_A / V.value() * lambda.powi(3));
+
+            // Rotational term
+            a_ideal += zi.get::<mole>() * (-nroti / 2.0 * T.value().ln());
+
+            // Vibrational term
+            let mut vib_sum = 0.0;
+
+            for (k, &ni_k) in ni.iter().enumerate() {
+                let vib_inner: f64 = (0..4)
+                    .map(|v| g_vib[v] * walker_fi(theta_vib[v], T.value()))
+                    .sum();
+                vib_sum += ni_k as f64 * vib_inner;
+            }
+
+            a_ideal += zi.get::<mole>() * vib_sum;
+        }
+
+        // normalize by total moles if desired
+        a_ideal /= sum_moles;
 
         return Energy::new::<energy::joule>(a_ideal);
     }

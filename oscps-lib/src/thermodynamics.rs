@@ -126,13 +126,18 @@ pub enum ReferenceStateType{}
 /// Will contain the parameters that will be part of each enum member in the ``ReferenceState``
 /// enumeration.
 #[derive(Clone)]
-pub struct ReferenceStateParameter{}
+pub struct ReferenceStateParameter{
+
+}
 
 ///# EOSGroupContributionTypes
 ///
 /// Enumeration to hold the type of groups used within ``EOSGroupContributionParameters``
 #[derive(Clone)]
-pub enum EOSGroupContributionTypes{}
+pub enum EOSGroupContributionTypes{
+    ///Group contribution for WalkerIdeal EOS
+    WalkerIdeal
+}
 
 ///# EOSGroupContributionParameters
 ///
@@ -151,7 +156,7 @@ pub struct EOSGroupContributionParameter {
     /// list of the components
     pub components : Arc<Vec<ComponentData>>, 
     /// A list of all the connections between groups
-    pub n_intragroups : Arc<Vec<DMatrix<i64>>>, 
+    pub n_intragroups : Arc<Vec<Vec<Vec<f64>>>>, 
     /// A list of all unique groups
     pub flattened_groups : Arc<Vec<String>>, 
     ///multiplicitiy of each unique group for each chemical species 
@@ -169,8 +174,7 @@ impl EOSGroupContributionParameter {
     ) ->Self {
         let flattened_groups : Vec<String> = Vec::new();
         let n_flattened_groups : Vec<Vec<i64>> = Vec::new();
-        let empty_intergroup: DMatrix<i64> = DMatrix::zeros(0, 0);
-        let n_intragroups: Vec<DMatrix<i64>> = vec![empty_intergroup.clone(); components.len()];
+        let n_intragroups : Vec<Vec<Vec<f64>>> = Vec::new();
 
         return EOSGroupContributionParameter { 
             group_type: group_type, 
@@ -182,12 +186,15 @@ impl EOSGroupContributionParameter {
         };
     }
     /// Builds the intragroups for the Group Param
-    pub fn build_intragroups(self, db_group_contribution_intragroups : &Vec<Vec<((String, String), f64)>>) {
+    pub fn build_intragroups(
+        &mut self, 
+        db_group_contribution_intragroups : &Vec<Vec<((String, String), f64)>>
+    ) -> Vec<Vec<Vec<f64>>> {
        let group_names = self.flattened_groups.as_ref().clone();
        let n_groups = group_names.len();
        let n_components = self.components.as_ref().len();
 
-       let mut n_intergroups: Vec<Vec<Vec<f64>>> = Vec::with_capacity(n_components);
+       let mut n_intragroups: Vec<Vec<Vec<f64>>> = Vec::with_capacity(n_components);
 
        for i in 0..n_components {
            // Create an n_groups x n_groups matrix filled with 0.0
@@ -209,8 +216,10 @@ impl EOSGroupContributionParameter {
                matrix[n2][n1] = *val;
 
            }
-           n_intergroups.push(matrix);
+           n_intragroups.push(matrix);
        }
+       self.n_intragroups = Arc::new(n_intragroups.clone());
+       n_intragroups
     }
 }
 
