@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use iced::gradient::Linear;
 use iced::widget::canvas::{self, stroke, Cache, Canvas, Geometry, Path, Stroke};
+use iced::widget::{pane_grid, text};
 use iced::window;
 use iced::{mouse, Color};
 
@@ -66,13 +67,16 @@ impl<Message> canvas::Program<Message> for OSCPS {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.palette();
 
+            frame.fill_rectangle(
+                Point::ORIGIN,
+                bounds.size(),
+                iced::Color::from_rgb(0.95, 0.95, 0.95),
+            );
+
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 5.0;
 
-            let start = Point::new(center.x, center.y - radius); //  Top, stationary point
-
-            // One full rotation every second
-            let angle = (self.start.elapsed().as_millis() % 10_000) as f32 / 10_000.0 * 2.0 * PI;
+            let start = Point::new(center.x, center.y - radius);
 
             let end = match cursor {
                 mouse::Cursor::Available(point) => point,
@@ -80,12 +84,6 @@ impl<Message> canvas::Program<Message> for OSCPS {
                 mouse::Cursor::Unavailable => Point::new(center.x, center.y),
             };
 
-            // let end = Point::new(
-            //     center.x + radius * angle.cos(),
-            //     center.y + radius * angle.sin(),
-            // );
-
-            // Draw the end point circles
             let circles = Path::new(|b| {
                 b.circle(start, 10.0);
                 b.move_to(end);
