@@ -58,7 +58,7 @@ pub trait BaseEOSModel {
     ///
     /// # Returns
     /// The ideal helmholtz free energy (units of Joules)
-    fn ideal_helmholtz(&self, V : Volume, T : ThermodynamicTemperature) -> Energy {
+    fn ideal_helmholtz(&self, V : Volume, T : ThermodynamicTemperature, z : Vec<AmountOfSubstance>) -> Energy {
         let k_b = ThermodynamicConstants::BoltzmannConstant.value()
             .downcast_ref::<HeatCapacity>()  
             .unwrap()

@@ -24,6 +24,8 @@ use uom::si::pressure;
 use uom::si::thermodynamic_temperature;
 use uom::si::energy;
 use uom::si::amount_of_substance;
+use uom::si::action;
+
 use nalgebra::DMatrix;
 use std::collections::HashMap;
 
@@ -31,7 +33,6 @@ use std::collections::HashMap;
 ///# ThermodynamicConstants
 ///
 /// Struct for storing physical constants for thermodynamics.
-/// TODO: Reimplement the use of uom for dimensional analysis.
 pub enum ThermodynamicConstants {
     /// The Universal gas constant in J/(mol*K)
     UniversalGasConstant, // J/(mol*K)
@@ -42,7 +43,9 @@ pub enum ThermodynamicConstants {
     /// Avogadro's number in mol^-1
     AvogadroNumber,       // N_A
     /// Boltzmann Constant
-    BoltzmannConstant     // k_B
+    BoltzmannConstant,    // k_B
+    ///Planck's Constant
+    PlancksConstant       //h
 }
 
 #[allow(dead_code)] 
@@ -56,14 +59,11 @@ impl ThermodynamicConstants {
                 let constant = Energy::new::<energy::joule>(r) / (ThermodynamicTemperature::new::<thermodynamic_temperature::kelvin>(1.0)* AmountOfSubstance::new::<amount_of_substance::mole>(1.0));
                 Box::new(constant)
             },
-            ThermodynamicConstants::StandardTemperature => {
-                Box::new(ThermodynamicTemperature::new::<thermodynamic_temperature::kelvin>(273.15))
-            }
-            ThermodynamicConstants::StandardPressure => {
-                Box::new(Pressure::new::<pressure::pascal>(101325.0))
-            },
+            ThermodynamicConstants::StandardTemperature => {Box::new(ThermodynamicTemperature::new::<thermodynamic_temperature::kelvin>(273.15))} // K
+            ThermodynamicConstants::StandardPressure => {Box::new(Pressure::new::<pressure::pascal>(101325.0))}, //Pa
             ThermodynamicConstants::AvogadroNumber => Box::new(6.02214076e23), //Units: particles/mole
-            ThermodynamicConstants::BoltzmannConstant => Box::new(HeatCapacity::new::<heat_capacity::joule_per_kelvin>(1.380_649e-23))
+            ThermodynamicConstants::BoltzmannConstant => Box::new(HeatCapacity::new::<heat_capacity::joule_per_kelvin>(1.380_649e-23)),
+            ThermodynamicConstants::PlancksConstant => Box::new(Action::new::<action::joule_second>(6.62607015e-34)) //J*s
         }
     }
 }
@@ -95,7 +95,7 @@ pub enum EOSParams {
 ///Pure component thermodynamic properties
 #[derive(Clone)]
 pub struct SingleParameter {
-    
+    value : f64    
 }
 
 ///# BinaryParameter

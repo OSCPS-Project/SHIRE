@@ -15,13 +15,17 @@ use uom::si::amount_of_substance;
 use uom::si::volume;
 use uom::si::ratio;
 use uom::si::molar_mass;
+use uom::si::action;
+use uom::si::heat_capacity;
 
 //Internal Imports
 use crate::thermodynamics::EOSParams;
 use crate::thermodynamics::ReferenceStateParameter;
 use crate::thermodynamics::ideal::BaseEOSModel;
 use crate::thermodynamics::EOSGroupContributionParameter;
+use crate::thermodynamics::ThermodynamicConstants::*;
 use crate::stream::ComponentData;
+
 
 ///# WalkerModel
 ///
@@ -63,47 +67,65 @@ impl BaseEOSModel for WalkerModel {
     fn components(&self) -> Arc<Vec<ComponentData>> {
         return Arc::clone(&self.components);
     }
+
     // Overriding the default function for the Walker Ideal Model
     fn ideal_helmholtz(&self, V: Volume, T: ThermodynamicTemperature, z: Vec<AmountOfSubstance>) -> Energy {
-        let a_ideal = 0.0;
+        let k_b : f64 = BoltzmannConstant.value().downcast_ref::<HeatCapacity>().unwrap().get::<heat_capacity::joule_per_kelvin>();
+        let h : f64 = PlancksConstant.value().downcast_ref::<Action>().unwrap().get::<action::joule_second>();
+        let n_a : f64 = *AvogadroNumber.value().downcast_ref::<f64>().unwrap();
+        let vol : f64 = V.get::<volume::cubic_meter>();
+        let temp : f64 = T.get::<thermodynamic_temperature::kelvin>();
+        
+        let mut a_ideal = 0.0;
         let rotational_modes = vec![self.theta_1.as_ref(), self.theta_2.as_ref(), self.theta_3.as_ref(), self.theta_4.as_ref()];
         let vibrational_modes = vec![self.deg_1.as_ref(), self.deg_2.as_ref(), self.deg_3.as_ref(), self.deg_4.as_ref()];
         let n_groups = &self.eos_groups.n_flattened_groups.clone();
-        let residual = 0.0;
         let sum_moles = self.total_moles();
         // loop over components
         for (ni, &zi) in n_groups.iter().zip(z.iter()) {
             // Molecular weight for this component
-            let molecular_weight_i = ni.iter()
-                .map(|&n| n as f64 * sum_moles)
-                .collect();
+            let molecular_weight_i : f64 = ni.iter()
+                .map(|&n| (sum_moles * n as f64).get::<amount_of_substance::mole>()) // f64
+                .sum();
             // Rotational contribution
-            //FIXME:Need to figure out how to extract value from self.n_rot
-            let n_rotational_mode_i = ni.iter().map(|&n| n as f64 * self.n_rot).collect()/(ni.iter().sum()); 
+            let n_rot_value = match &*self.n_rot {
+                EOSParams::SingleParameterType(param) => param.value, // adjust field name
+                _ => panic!("Expected SingleParameterType for n_rot"),
+            };
+            let n_rotational_mode_i: f64 = ni.iter()
+                .map(|&n| n as f64 * n_rot_value)
+                .sum::<f64>()   // sum the weighted values
+                / ni.iter().map(|&n| n as f64).sum::<f64>(); // sum of n
             // Thermal wavelength
-            let lambda = H / (K_B * T.value() * mwi / N_A).sqrt();
+            let lambda : f64 = h / (k_b * temp * molecular_weight_i / n_a).sqrt();
 
             // Ideal translational term
-            a_ideal += xlogx(zi.get::<mole>(), N_A / V.value() * lambda.powi(3));
+            a_ideal += self.xlogx(zi.get::<amount_of_substance::mole>(), n_a / vol * lambda.powi(3));
 
             // Rotational term
-            a_ideal += zi.get::<mole>() * (-nroti / 2.0 * T.value().ln());
+            a_ideal += zi.get::<amount_of_substance::mole>() * (-n_rotational_mode_i / 2.0 * temp.ln());
 
             // Vibrational term
             let mut vib_sum = 0.0;
 
             for (k, &ni_k) in ni.iter().enumerate() {
                 let vib_inner: f64 = (0..4)
-                    .map(|v| g_vib[v] * walker_fi(theta_vib[v], T.value()))
-                    .sum();
+                    .map(|v| {
+                        let vi: f64 = match &*vibrational_modes[v] {
+                            EOSParams::SingleParameterType(param) => param.value, // adjust field name
+                            _ => panic!("Expected SingleParameterType for n_rot"),
+                        };
+                        vi * self.walker_fi(rotational_modes[v], temp) // <-- no extra ')'
+                    })
+                .sum();
                 vib_sum += ni_k as f64 * vib_inner;
             }
 
-            a_ideal += zi.get::<mole>() * vib_sum;
+            a_ideal += zi.get::<amount_of_substance::mole>() * vib_sum;
         }
 
         // normalize by total moles if desired
-        a_ideal /= sum_moles;
+        a_ideal /= sum_moles.get::<amount_of_substance::mole>();
 
         return Energy::new::<energy::joule>(a_ideal);
     }
@@ -143,6 +165,26 @@ impl WalkerModel {
                 deg_4: Arc::new(deg_values[3].clone()), 
                 reference_state: reference_state,
                 eos_groups: eos_groups };
+    }
+    fn xlogx(&self, x: f64, y: f64) -> f64 {
+        if x <= 0.0 || y <= 0.0 {
+            0.0 // convention: 0 * ln(anything) = 0
+        } else {
+            x * y.ln()
+        }
+    }
+
+    fn walker_fi(&self, theta : &EOSParams , T : f64) -> f64 {
+        let theta_val : f64 = match &*theta {
+                EOSParams::SingleParameterType(param) => param.value, // adjust field name
+                _ => panic!("Expected SingleParameterType for n_rot"),
+            };
+        if(theta_val != 0.0) {
+            return (1.0 - (-theta_val / T).exp()).ln() + theta_val / (2.0 * T);
+        }
+        else {
+            return 0.0;
+        }
     }
 }
 
