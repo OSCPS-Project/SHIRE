@@ -69,6 +69,7 @@ impl BaseEOSModel for WalkerModel {
     }
 
     // Overriding the default function for the Walker Ideal Model
+    // FIXME: Check whether implemented correctly!
     fn ideal_helmholtz(&self, V: Volume, T: ThermodynamicTemperature, z: Vec<AmountOfSubstance>) -> Energy {
         let k_b : f64 = BoltzmannConstant.value().downcast_ref::<HeatCapacity>().unwrap().get::<heat_capacity::joule_per_kelvin>();
         let h : f64 = PlancksConstant.value().downcast_ref::<Action>().unwrap().get::<action::joule_second>();
