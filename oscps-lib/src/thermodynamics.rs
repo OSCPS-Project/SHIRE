@@ -3,13 +3,14 @@
 //! This module will hold all the functions related to calculating 
 //! themrodynamic properties for the blocks and chemical species.
 //!
-//! Inspired by: https://github.com/ClapeyronThermo/Clapeyron.jl
+//! Based on: https://github.com/ClapeyronThermo/Clapeyron.jl
 
 ///Importing EOSModels
 pub mod ideal;
 pub mod cubic;
 
 ///Importing Supporting Thermodynamic Methods
+pub mod methods;
 
 /// Importing Chemical Properties Used by Thermo Packages
 use crate::properties::Chemical;
