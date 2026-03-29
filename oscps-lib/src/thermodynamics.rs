@@ -13,6 +13,7 @@ pub mod cubic;
 
 /// Importing Chemical Properties Used by Thermo Packages
 use crate::properties::Chemical;
+use crate::properties::FunctionalGroup;
 use crate::stream::ComponentData;
 
 ///Importing External Packages
@@ -95,7 +96,10 @@ pub enum EOSParams {
 ///Pure component thermodynamic properties
 #[derive(Clone)]
 pub struct SingleParameter {
-    value : f64    
+    name : String,
+    value : Option<f64>,
+    chemical_species : Option<Chemical>,
+    functional_group : Option<FunctionalGroup>
 }
 
 ///# BinaryParameter

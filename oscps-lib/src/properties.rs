@@ -10,6 +10,7 @@ use uom::si::f64::*;
 use std::{thread,time::Duration};
 use serde::{Serialize, Deserialize};
 
+#[derive(Clone)]
 #[allow(dead_code)]
 /// Used by the "Chemical" struct to create the pubchem::Compound obj based on
 /// either the chemical name or the pubchem id of the chemical
@@ -20,7 +21,18 @@ pub enum ChemicalIdentifier {
     CompoundName(String),
 }
 
+#[derive(Clone)]
+#[allow(dead_code)]
+/// A struct to store information regarding the chemical properties of a 
+/// particular functional group.
+pub struct FunctionalGroup {
+    /// The (PubChem)[<https://pubchem.ncbi.nlm.nih.gov/>] CID of a compound.
+    pub pubchem_obj: pubchem::Compound,
+    /// Physical properties of a compound.
+    pub properties: ChemicalProperties,
+}
 
+#[derive(Clone)]
 #[allow(dead_code)]
 /// A struct to store information regarding the chemical properties of a 
 /// particular substance. The "Chemical" struct is a wrapper for the 
@@ -31,7 +43,7 @@ pub struct Chemical {
     /// Physical properties of a compound.
     pub properties: ChemicalProperties,
     /// functional groups present for this chemical (group name, db index, multiplicity)
-    pub groups: Vec<(String, i32, i64)>
+    pub groups: Vec<(FunctionalGroup, i32, i64)>
 }
 
 #[allow(dead_code)]
@@ -61,7 +73,7 @@ impl Chemical {
         // let cid_vec = pubchem_chemical_object.cids().unwrap();
         let cid: i32 = cid_vec.unwrap()[0];
         let prop = ChemicalProperties::new(cid);
-        let groups : Vec<(String, i32, i64)> = Vec::new();
+        let groups : Vec<(FunctionalGroup, i32, i64)> = Vec::new();
         Ok(Chemical {
             pubchem_obj: pubchem_chemical_object,
             properties: prop,
@@ -79,6 +91,7 @@ impl Chemical {
     }
 }
 
+#[derive(Clone)]
 #[allow(dead_code)]
 /// Struct containing physical properties of a chemical species
 pub struct ChemicalProperties {}

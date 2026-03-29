@@ -2,6 +2,14 @@
 //!
 //! Contains implementation of the ``WalkerModel`` a type of ideal Equation of State Model that
 //! also account for the vibrational and rotational modes of molecules in thermo calculations.
+//! 
+//! Ref
+//! ---
+//! Walker, P. J., & Haslam, A. J. (2020). A new predictive group-contribution 
+//! ideal-heat-capacity model and its influence on second-derivative properties 
+//! calculated using a free-energy equation of state. 
+//! Journal of Chemical and Engineering Data, 65(12), 5809–5829. 
+//! [doi:10.1021/acs.jced.0c00723](https://doi.org/10.1021/acs.jced.0c00723)
 
 //External Imports
 use std::sync::Arc;
@@ -90,7 +98,7 @@ impl BaseEOSModel for WalkerModel {
                 .sum();
             // Rotational contribution
             let n_rot_value = match &*self.n_rot {
-                EOSParams::SingleParameterType(param) => param.value, // adjust field name
+                EOSParams::SingleParameterType(param) => param.value.unwrap(), // adjust field name
                 _ => panic!("Expected SingleParameterType for n_rot"),
             };
             let n_rotational_mode_i: f64 = ni.iter()
@@ -177,7 +185,7 @@ impl WalkerModel {
 
     fn walker_fi(&self, theta : &EOSParams , T : f64) -> f64 {
         let theta_val : f64 = match &*theta {
-                EOSParams::SingleParameterType(param) => param.value, // adjust field name
+                EOSParams::SingleParameterType(param) => param.value.unwrap(), // adjust field name
                 _ => panic!("Expected SingleParameterType for n_rot"),
             };
         if(theta_val != 0.0) {
