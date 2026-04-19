@@ -26,8 +26,8 @@ pub enum ChemicalIdentifier {
 /// A struct to store information regarding the chemical properties of a 
 /// particular functional group.
 pub struct FunctionalGroup {
-    /// The (PubChem)[<https://pubchem.ncbi.nlm.nih.gov/>] CID of a compound.
-    pub pubchem_obj: pubchem::Compound,
+    /// The (PubChem)[<https://pubchem.ncbi.nlm.nih.gov/>] identifier (either name or id #) of a compound.
+    pub id : ChemicalIdentifier,
     /// Physical properties of a compound.
     pub properties: ChemicalProperties,
 }
@@ -38,8 +38,8 @@ pub struct FunctionalGroup {
 /// particular substance. The "Chemical" struct is a wrapper for the 
 /// pubchem::Compound object
 pub struct Chemical {
-    /// The (PubChem)[<https://pubchem.ncbi.nlm.nih.gov/>] CID of a compound.
-    pub pubchem_obj: pubchem::Compound,
+    /// The (PubChem)[<https://pubchem.ncbi.nlm.nih.gov/>] identifier (either name or id #) of a compound.
+    pub id : ChemicalIdentifier,
     /// Physical properties of a compound.
     pub properties: ChemicalProperties,
     /// functional groups present for this chemical (group name, db index, multiplicity)
@@ -51,8 +51,18 @@ pub struct Chemical {
 impl Chemical {
     /// Constructs a new chemical.
     pub fn new(identifier: ChemicalIdentifier) -> Result<Self> {
-        let pubchem_chemical_object = match identifier {
-            ChemicalIdentifier::PubchemID(id) => pubchem::Compound::new(id),
+        let prop = ChemicalProperties::new();
+        let groups : Vec<(FunctionalGroup, i32, i64)> = Vec::new();
+        Ok(Chemical {
+            id: identifier,
+            properties: prop,
+            groups : groups
+        })
+    }
+    /// Returns the pubchem object for the compound.
+    pub fn get_pubchem_obj(&self) -> (pubchem::Compound, i32) {
+        let pubchem_chemical_object = match &self.id {
+            ChemicalIdentifier::PubchemID(id) => pubchem::Compound::new(*id),
             ChemicalIdentifier::CompoundName(name) => pubchem::Compound::with_name(name.as_str()),
         };
         let mut request_counter = 0;
@@ -72,17 +82,8 @@ impl Chemical {
 
         // let cid_vec = pubchem_chemical_object.cids().unwrap();
         let cid: i32 = cid_vec.unwrap()[0];
-        let prop = ChemicalProperties::new(cid);
-        let groups : Vec<(FunctionalGroup, i32, i64)> = Vec::new();
-        Ok(Chemical {
-            pubchem_obj: pubchem_chemical_object,
-            properties: prop,
-            groups : groups
-        })
-    }
-    /// Returns the pubchem object for the compound.
-    pub fn get_pubchem_obj(&self) -> &pubchem::Compound {
-        &self.pubchem_obj
+
+        (pubchem_chemical_object, cid)
     }
 
     /// Returns the "ChemicalProperties" object for the "Chemical" object.
@@ -98,7 +99,7 @@ pub struct ChemicalProperties {}
 
 impl ChemicalProperties{
     /// constructor for the ``ChemicalProperties`` struct
-    pub fn new(_cid: i32) -> ChemicalProperties {
+    pub fn new() -> ChemicalProperties {
         return ChemicalProperties {};
     }
 }
