@@ -121,7 +121,7 @@ impl BaseEOSModel for WalkerModel {
                 let vib_inner: f64 = (0..4)
                     .map(|v| {
                         let vi: f64 = match &*vibrational_modes[v] {
-                            EOSParams::SingleParameterType(param) => param.value, // adjust field name
+                                EOSParams::SingleParameterType(param) => param.value.unwrap(), // adjust field name
                             _ => panic!("Expected SingleParameterType for n_rot"),
                         };
                         vi * self.walker_fi(rotational_modes[v], temp) // <-- no extra ')'
