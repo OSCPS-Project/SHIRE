@@ -6,3 +6,6 @@
 //! 1. Single Component System
 //! 2. Multi Component System
 //! 3. Electrolytic System
+
+//single component system solvers & property calculations
+pub mod single_component;
