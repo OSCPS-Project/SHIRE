@@ -2,16 +2,20 @@
 
 
 
-/// Will hold the methods for computing saturation pressure and temperature
+/// Antoine's equation for saturation temperature calcs (default for sat temp calcs)
 pub trait SCAntoineSat {
-
-    pub fn psat_computation() {
-
-    }
-
-    pub fn tsat_computation() {
+    /// saturated temp calcalation
+    fn tsat_computation() {
 
     }
 }
 
+/// Uses equality of Chemical Potentials with a volume basis to compute sat pressure. Default for
+/// sat pressure calculations
+pub trait SCChemPotSat {
+    /// saturated pressure calculations
+    fn psat_computation() {
+
+    }
+}
 
