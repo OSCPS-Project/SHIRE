@@ -2,8 +2,6 @@
 //!
 //! Contains lib file for property solvers for a single component system
 
-// internal imports
-use crate::thermodynamics::ideal::BaseEOSModel;
 
 // modules that are part of the single component system solver
 pub mod sc_antoine_saturation;
@@ -30,17 +28,17 @@ trait SingleComponentSystemSolverBase {
 
     /// validity checks for mechanical stability of volumes and that liquid and vapor phase
     /// volumes are different by a threshold
-    pub fn sc_validity_checks() {
+    fn sc_validity_checks() {
         
     }
 
     /// base function equilibrium pressure calculation
-    pub fn sc_compute_equilibrium_pressure() {
+    fn sc_compute_equilibrium_pressure() {
 
     }
 
     /// base function equilibrium temperature calculation
-    pub fn sc_compute_equilibrium_temperature() {
+    fn sc_compute_equilibrium_temperature() {
 
     }
 }
