@@ -6,26 +6,16 @@
 use crate::thermodynamics::ideal::BaseEOSModel;
 
 // modules that are part of the single component system solver
-pub mod saturation;
+pub mod sc_antoine_saturation;
+pub mod sc_chem_pot_v_saturation;
+pub mod sc_clapeyron_saturation;
+pub mod sc_critical_point_extrapolation;
 
 // external imports
 use uom::si::f64::*;
 
-/// #SingleComponentSystemSolver
-pub struct SingleComponentSystemSolver {
-    /// Equation of state model
-    pub model: Option<Box<dyn BaseEOSModel>>,
-    /// liquid phase volume
-    pub v_L: Volume,
-    /// vapor phase volume
-    pub v_V: Volume,
-    /// Temperature
-    pub temperature: ThermodynamicTemperature,
-    /// moles
-    pub moles: AmountOfSubstance
-}
 
-impl SingleComponentSystemSolver {
+trait SingleComponentSystemSolverBase {
     /// checks if values are positive
     fn _check_positive_values() {
 
